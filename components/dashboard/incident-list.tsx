@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { collection, query, orderBy, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -20,16 +21,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Paintbrush } from "lucide-react";
 
 interface Incident {
   id: string;
+  incidentNumber: string;
   reportingParty: string;
   partyOfConcern: string;
   location: string;
   mobileUnit: string;
   incidentType: string;
   reportedVia: string;
-  comments: string;
+  priority: string;
+  description: string;
   status: string;
   createdByEmail: string;
   createdAt: { seconds: number } | null;
@@ -46,22 +50,63 @@ const statusOptions = [
   "Resolved",
 ];
 
+const priorityOptions = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "critical", label: "Critical" },
+];
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case "AOR":
-      return "bg-red-100 text-red-800 border-red-300";
+      return "bg-red-200 border-red-500";
     case "Responding":
-      return "bg-orange-100 text-orange-800 border-orange-300";
+      return "bg-orange-200 border-orange-500";
     case "On Scene":
-      return "bg-yellow-100 text-yellow-800 border-yellow-300";
+      return "bg-yellow-200 border-yellow-500";
     case "Transporting":
-      return "bg-blue-100 text-blue-800 border-blue-300";
+      return "bg-blue-200 border-blue-500";
     case "Arrived":
-      return "bg-purple-100 text-purple-800 border-purple-300";
+      return "bg-purple-200 border-purple-500";
     case "Resolved":
-      return "bg-green-100 text-green-800 border-green-300";
+      return "bg-green-200 border-green-500";
     default:
-      return "bg-gray-100 text-gray-800 border-gray-300";
+      return "bg-gray-200 border-gray-500";
+  }
+};
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case "critical":
+      return "border-orange-500";
+    case "high":
+      return "border-red-500";
+    case "medium":
+      return "border-yellow-500";
+    case "low":
+      return "border-green-500";
+    default:
+      return "border-gray-500";
+  }
+};
+
+const getRowStatusColor = (status: string) => {
+  switch (status) {
+    case "AOR":
+      return "bg-red-100";
+    case "Responding":
+      return "bg-orange-100";
+    case "On Scene":
+      return "bg-yellow-100";
+    case "Transporting":
+      return "bg-blue-100";
+    case "Arrived":
+      return "bg-purple-100";
+    case "Resolved":
+      return "bg-green-100";
+    default:
+      return "";
   }
 };
 
@@ -69,6 +114,7 @@ export function IncidentList() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("active");
+  const [showStatusColors, setShowStatusColors] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "incidents"), orderBy("createdAt", "desc"));
@@ -95,6 +141,16 @@ export function IncidentList() {
     }
   };
 
+  const handlePriorityChange = async (incidentId: string, newPriority: string) => {
+    try {
+      await updateDoc(doc(db, "incidents", incidentId), {
+        priority: newPriority,
+      });
+    } catch (error) {
+      console.error("Error updating priority:", error);
+    }
+  };
+
   const formatTime = (timestamp: { seconds: number } | null) => {
     if (!timestamp) return "—";
     return new Date(timestamp.seconds * 1000).toLocaleTimeString([], {
@@ -115,22 +171,26 @@ export function IncidentList() {
   if (loading) {
     return (
       <Card>
-        <CardHeader className="py-3">
-          <CardTitle>Incidents</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardHeader>
           <p className="text-muted-foreground">Loading...</p>
-        </CardContent>
+        </CardHeader>
       </Card>
     );
   }
 
   return (
     <Card>
-      <CardHeader className="py-3">
+      <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Incidents ({filteredIncidents.length})</CardTitle>
+          <Button
+            variant={showStatusColors ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowStatusColors(!showStatusColors)}
+          >
+            <Paintbrush className="h-4 w-4 mr-1" />
+          </Button>
           <ToggleGroup
+            className="border"
             type="single"
             value={filter}
             onValueChange={(value) => value && setFilter(value as FilterType)}
@@ -156,40 +216,61 @@ export function IncidentList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[60px]">#</TableHead>
+                  <TableHead className="w-[80px]">Incident #</TableHead>
                   <TableHead className="w-[80px]">Time</TableHead>
+                  <TableHead className="w-[100px]">Priority</TableHead>
                   <TableHead className="w-[120px]">Type</TableHead>
                   <TableHead>Party of Concern</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead className="w-[80px]">Unit</TableHead>
-                  <TableHead className="max-w-[200px]">Description</TableHead>
+                  <TableHead className="max-w-[150px]">Description</TableHead>
                   <TableHead className="w-[140px]">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredIncidents.map((incident, index) => (
-                  <TableRow key={incident.id}>
-                    <TableCell className="font-medium">
-                      {filteredIncidents.length - index}
+                {filteredIncidents.map((incident) => (
+                  <TableRow
+                    key={incident.id}
+                    className={showStatusColors ? getRowStatusColor(incident.status) : ""}
+                  >
+                    <TableCell className="font-mono font-medium">
+                      {incident.incidentNumber || "—"}
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell className="font-mono">
                       {formatTime(incident.createdAt)}
                     </TableCell>
-                    <TableCell className="text-xs">
+                    <TableCell>
+                      <Select
+                        value={incident.priority}
+                        onValueChange={(value) => handlePriorityChange(incident.id, value)}
+                      >
+                        <SelectTrigger className={`h-8 ${getPriorityColor(incident.priority)}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {priorityOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
                       {incident.incidentType}
                     </TableCell>
                     <TableCell>{incident.partyOfConcern}</TableCell>
                     <TableCell>{incident.location}</TableCell>
                     <TableCell>{incident.mobileUnit || "—"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={incident.comments}>
-                      {incident.comments || "—"}
+                    <TableCell className="max-w-[150px] truncate" title={incident.description}>
+                      {incident.description || "—"}
                     </TableCell>
                     <TableCell>
                       <Select
                         value={incident.status}
                         onValueChange={(value) => handleStatusChange(incident.id, value)}
                       >
-                        <SelectTrigger className={`h-8 text-xs ${getStatusColor(incident.status)}`}>
+                        <SelectTrigger className={`h-8 ${getStatusColor(incident.status)}`}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

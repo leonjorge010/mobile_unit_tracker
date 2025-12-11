@@ -25,7 +25,7 @@ export default function Home() {
       <div className="min-h-screen bg-background">
         <header className="border-b">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-xl font-bold">MOBILE UNIT TRACKER</h1>
+            <h1 className="text-xl font-bold">TOTEM</h1>
             <div className="flex items-center gap-2">
               <ThemeToggle />
               <Button onClick={() => router.push("/login")}>Sign In</Button>
@@ -50,7 +50,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">MOBILE UNIT TRACKER</h1>
+          <h1 className="text-xl font-bold">TOTEM</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{user.displayName || user.email}</span>
             <ThemeToggle />
