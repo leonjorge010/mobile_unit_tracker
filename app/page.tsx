@@ -4,6 +4,9 @@ import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { MapWrapper } from "@/components/dashboard/map-wrapper";
+import { IncidentForm } from "@/components/dashboard/incident-form";
+import { IncidentList } from "@/components/dashboard/incident-list";
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
@@ -47,9 +50,9 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">Mobile Unit Tracker</h1>
+          <h1 className="text-xl font-bold">MOBILE UNIT TRACKER</h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user.displayName}</span>
+            <span className="text-sm text-muted-foreground">{user.displayName || user.email}</span>
             <ThemeToggle />
             <Button variant="outline" onClick={logout}>
               Sign Out
@@ -58,8 +61,15 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <p>Welcome! You are signed in.</p>
+      <main className="p-4 space-y-4">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <MapWrapper className="h-[300px] w-full lg:w-1/3 rounded-lg overflow-hidden border" />
+          <div className="w-full lg:w-2/3">
+            <IncidentForm />
+          </div>
+        </div>
+
+        <IncidentList />
       </main>
     </div>
   );
