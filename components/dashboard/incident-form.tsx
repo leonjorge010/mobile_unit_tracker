@@ -4,6 +4,7 @@ import { useState } from "react";
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
+import { useEvents } from "@/hooks/use-events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +28,11 @@ interface IncidentData {
   description: string;
   status: string;
 }
+
+const partyOptions = [
+  "Public Safety / Prevent Medical",
+  "Site Ops",
+];
 
 const incidentTypes = [
   "Medical Emergency",
@@ -78,11 +84,10 @@ const initialFormData: IncidentData = {
 
 const generateIncidentNumber = async (): Promise<string> => {
   const now = new Date();
-  const year = now.getFullYear().toString().slice(-2); // "24" for 2024
+  const year = now.getFullYear().toString().slice(-2);
   const yearStart = new Date(now.getFullYear(), 0, 1);
   const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
 
-  // Query for the highest incident number this year
   const q = query(
     collection(db, "incidents"),
     where("createdAt", ">=", yearStart),
@@ -107,6 +112,7 @@ const generateIncidentNumber = async (): Promise<string> => {
 
 export function IncidentForm() {
   const { user } = useAuth();
+  const { selectedEventId } = useEvents();
   const [formData, setFormData] = useState<IncidentData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
@@ -120,8 +126,23 @@ export function IncidentForm() {
     setStatus("");
   };
 
+  const isFormValid = () => {
+    return (
+      formData.location.trim() &&
+      formData.incidentType &&
+      formData.priority &&
+      selectedEventId
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isFormValid()) {
+      setStatus("error");
+      return;
+    }
+
     setLoading(true);
     setStatus("");
 
@@ -131,6 +152,7 @@ export function IncidentForm() {
       await addDoc(collection(db, "incidents"), {
         ...formData,
         incidentNumber,
+        eventId: selectedEventId,
         createdBy: user?.uid,
         createdByEmail: user?.email,
         createdAt: serverTimestamp(),
@@ -151,41 +173,43 @@ export function IncidentForm() {
       <CardContent className="p-4 h-full">
         <form onSubmit={handleSubmit} className="flex flex-col h-full gap-3">
           {/* Row 1 */}
-          <div className="grid grid-cols-3 gap-3">
-            <Input
+          <div className="grid grid-cols-4 gap-3">
+            <Select
               value={formData.reportingParty}
-              onChange={(e) => handleChange("reportingParty", e.target.value)}
-              placeholder="Reporting Party *"
-              required
-            />
-            <Input
+              onValueChange={(value) => handleChange("reportingParty", value)}
+            >
+              <SelectTrigger className="w-full overflow-hidden">
+                <SelectValue placeholder="Reporting Party" className="truncate" />
+              </SelectTrigger>
+              <SelectContent>
+                {partyOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={formData.partyOfConcern}
-              onChange={(e) => handleChange("partyOfConcern", e.target.value)}
-              placeholder="Party of Concern *"
-              required
-            />
-            <Input
-              value={formData.location}
-              onChange={(e) => handleChange("location", e.target.value)}
-              placeholder="Location *"
-              required
-            />
-          </div>
-
-          {/* Row 2 */}
-          <div className="grid grid-cols-5 gap-2">
-            <Input
-              value={formData.mobileUnit}
-              onChange={(e) => handleChange("mobileUnit", e.target.value)}
-              placeholder="Mobile Unit"
-            />
+              onValueChange={(value) => handleChange("partyOfConcern", value)}
+            >
+              <SelectTrigger className="w-full overflow-hidden">
+                <SelectValue placeholder="Party of Concern" className="truncate" />
+              </SelectTrigger>
+              <SelectContent>
+                {partyOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select
               value={formData.incidentType}
               onValueChange={(value) => handleChange("incidentType", value)}
-              required
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Incident Type *" />
+              <SelectTrigger className="w-full overflow-hidden">
+                <SelectValue placeholder="Incident Type *" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 {incidentTypes.map((type) => (
@@ -198,10 +222,9 @@ export function IncidentForm() {
             <Select
               value={formData.reportedVia}
               onValueChange={(value) => handleChange("reportedVia", value)}
-              required
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Reported Via *" />
+              <SelectTrigger className="w-full overflow-hidden">
+                <SelectValue placeholder="Reported Via" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 {reportedViaOptions.map((option) => (
@@ -211,25 +234,40 @@ export function IncidentForm() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Row 2 */}
+          <div className="grid grid-cols-4 gap-2">
+            <Input
+              value={formData.mobileUnit}
+              onChange={(e) => handleChange("mobileUnit", e.target.value)}
+              placeholder="Mobile Unit"
+              className="truncate"
+            />
+            <Input
+              value={formData.location}
+              onChange={(e) => handleChange("location", e.target.value)}
+              placeholder="Location *"
+              className="truncate"
+            />
             <Select
               value={formData.priority}
               onValueChange={(value) => handleChange("priority", value)}
-              required
             >
               <SelectTrigger
-                className={
+                className={`w-full overflow-hidden ${
                   formData.priority === "critical"
-                    ? "border-orange-500 bg-orange-50 text-orange-700"
+                    ? "border-orange-500"
                     : formData.priority === "high"
-                    ? "border-red-500 bg-red-50 text-red-700"
+                    ? "border-red-500"
                     : formData.priority === "medium"
-                    ? "border-yellow-500 bg-yellow-50 text-yellow-700"
+                    ? "border-yellow-500"
                     : formData.priority === "low"
-                    ? "border-green-500 bg-green-50 text-green-700"
+                    ? "border-green-500"
                     : ""
-                }
+                }`}
               >
-                <SelectValue placeholder="Priority *" />
+                <SelectValue placeholder="Priority *" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 {priorityOptions.map((option) => (
@@ -243,8 +281,8 @@ export function IncidentForm() {
               value={formData.status}
               onValueChange={(value) => handleChange("status", value)}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
+              <SelectTrigger className="w-full overflow-hidden">
+                <SelectValue placeholder="Status" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
@@ -261,11 +299,11 @@ export function IncidentForm() {
             <Textarea
               value={formData.description}
               onChange={(e) => handleChange("description", e.target.value)}
-              placeholder="Description..."
+              placeholder="Description"
               className="flex-1 resize-none"
             />
             <div className="flex flex-col gap-1 w-20">
-              <Button type="submit" disabled={loading} className="flex-[2]">
+              <Button type="submit" disabled={loading || !isFormValid()} className="flex-[2]">
                 {loading ? "..." : "Submit"}
               </Button>
               <Button
@@ -278,14 +316,16 @@ export function IncidentForm() {
               </Button>
               <div
                 className={`flex-1 flex items-center justify-center text-xs font-medium rounded-md ${
-                  status === "nominal"
+                  !selectedEventId
+                    ? "bg-yellow-100 text-yellow-600"
+                    : status === "nominal"
                     ? "bg-green-100 text-green-600"
                     : status === "error"
                     ? "bg-red-100 text-red-600"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                {status === "nominal" ? "Nominal" : status === "error" ? "Error" : "—"}
+                {!selectedEventId ? "No Event" : status === "nominal" ? "Nominal" : status === "error" ? "Error" : "—"}
               </div>
             </div>
           </div>

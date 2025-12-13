@@ -1,8 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
+import { useEvents } from "@/hooks/use-events";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MapWrapper } from "@/components/dashboard/map-wrapper";
 import { IncidentForm } from "@/components/dashboard/incident-form";
@@ -10,6 +19,7 @@ import { IncidentList } from "@/components/dashboard/incident-list";
 
 export default function Home() {
   const { user, loading, logout } = useAuth();
+  const { events, selectedEvent, selectEvent, loading: eventsLoading } = useEvents();
   const router = useRouter();
 
   if (loading) {
@@ -52,7 +62,28 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">TOTEM</h1>
           <div className="flex items-center gap-4">
+            <Select
+              value={selectedEvent?.id || ""}
+              onValueChange={selectEvent}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder={eventsLoading ? "Loading..." : "Select Event"} />
+              </SelectTrigger>
+              <SelectContent>
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <span className="text-sm text-muted-foreground">{user.displayName || user.email}</span>
+            <Link
+              href="/admin"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Admin
+            </Link>
             <ThemeToggle />
             <Button variant="outline" onClick={logout}>
               Sign Out
