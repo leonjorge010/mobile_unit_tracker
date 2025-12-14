@@ -364,7 +364,7 @@ export function IncidentModal({ incident, open, onClose }: IncidentModalProps) {
             <div className="max-h-[150px] overflow-y-auto space-y-2 border rounded-md p-2">
               {incident.notes && incident.notes.length > 0 ? (
                 [...incident.notes]
-                  .sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)
+                  .sort((a, b) => a.createdAt.seconds - b.createdAt.seconds)
                   .map((note, index) => (
                     <div key={index} className="text-sm border-b pb-2 last:border-0">
                       <span className="text-muted-foreground">

@@ -142,7 +142,8 @@ export function IncidentList() {
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [showStatusColors, setShowStatusColors] = useState(false);
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
+  const selectedIncident = incidents.find((i) => i.id === selectedIncidentId) || null;
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
@@ -171,13 +172,13 @@ export function IncidentList() {
   }, [selectedEventId]);
 
   const handleOpenModal = (incident: Incident) => {
-    setSelectedIncident(incident);
+    setSelectedIncidentId(incident.id);
     setModalOpen(true);
   };
 
   const handleModalClose = () => {
     setModalOpen(false);
-    setSelectedIncident(null);
+    setSelectedIncidentId(null);
   };
 
   const handleStatusChange = async (incidentId: string, newStatus: string) => {
