@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   collection,
   query,
@@ -16,12 +16,21 @@ export interface Event {
   active: boolean;
 }
 
-export function useEvents() {
+interface EventsContextType {
+  events: Event[];
+  selectedEvent: Event | null;
+  selectedEventId: string | null;
+  selectEvent: (eventId: string) => void;
+  loading: boolean;
+}
+
+const EventsContext = createContext<EventsContextType | null>(null);
+
+export function EventsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load selected event from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("selectedEventId");
     if (stored) {
@@ -29,7 +38,6 @@ export function useEvents() {
     }
   }, []);
 
-  // Fetch active events
   useEffect(() => {
     const q = query(
       collection(db, "events"),
@@ -56,11 +64,25 @@ export function useEvents() {
 
   const selectedEvent = events.find((e) => e.id === selectedEventId) || null;
 
-  return {
-    events,
-    selectedEvent,
-    selectedEventId,
-    selectEvent,
-    loading,
-  };
+  return (
+    <EventsContext.Provider
+      value={{
+        events,
+        selectedEvent,
+        selectedEventId,
+        selectEvent,
+        loading,
+      }}
+    >
+      {children}
+    </EventsContext.Provider>
+  );
+}
+
+export function useEvents() {
+  const context = useContext(EventsContext);
+  if (!context) {
+    throw new Error("useEvents must be used within an EventsProvider");
+  }
+  return context;
 }

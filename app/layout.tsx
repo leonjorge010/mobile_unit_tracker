@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/lib/auth-context";
+import { EventsProvider } from "@/lib/events-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -16,7 +17,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <EventsProvider>
+              {children}
+            </EventsProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

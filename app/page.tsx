@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
-import { useEvents } from "@/hooks/use-events";
+import { useEvents } from "@/lib/events-context";
 import { Button } from "@/components/ui/button";
 import {
   Select,
