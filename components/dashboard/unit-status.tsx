@@ -13,6 +13,7 @@ type TabType = "zones" | "carts" | "management";
 export function UnitStatus({ className }: UnitStatusProps) {
   const { mobileUnits, incidents, loading } = useResources();
   const [activeTab, setActiveTab] = useState<TabType>("zones");
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
   const getIncidentForUnit = (unitName: string) => {
     return incidents.find((incident) =>
@@ -46,14 +47,23 @@ export function UnitStatus({ className }: UnitStatusProps) {
   const { zones, carts, management } = categorizeUnits();
 
   const getActiveUnits = () => {
+    let units;
     switch (activeTab) {
       case "zones":
-        return zones;
+        units = zones;
+        break;
       case "carts":
-        return carts;
+        units = carts;
+        break;
       case "management":
-        return management;
+        units = management;
+        break;
     }
+
+    if (showAvailableOnly) {
+      return units.filter((unit) => !getIncidentForUnit(unit.name));
+    }
+    return units;
   };
 
   if (loading) {
@@ -75,20 +85,34 @@ export function UnitStatus({ className }: UnitStatusProps) {
   return (
     <Card className={className}>
       <CardContent className="h-full p-4 overflow-hidden flex flex-col">
-        <div className="flex gap-3 text-sm mb-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={activeTab === tab.key ? "font-bold" : "text-muted-foreground"}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex gap-3 text-sm">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={activeTab === tab.key ? "font-bold" : "text-muted-foreground"}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+            className={`text-sm ${
+              showAvailableOnly
+                ? "underline decoration-green-500 underline-offset-2"
+                : "text-muted-foreground"
+            }`}
+          >
+            Available
+          </button>
         </div>
 
         {getActiveUnits().length === 0 ? (
-          <p className="text-sm text-muted-foreground">No units in this category</p>
+          <p className="text-sm text-muted-foreground">
+            {showAvailableOnly ? "No available units" : "No units in this category"}
+          </p>
         ) : (
           <div
             className="flex-1 overflow-auto"

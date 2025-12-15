@@ -23,7 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Paintbrush, ExternalLink } from "lucide-react";
 import { IncidentModal } from "./incident-modal";
 
@@ -236,7 +235,7 @@ export function IncidentList() {
 
   if (!selectedEventId) {
     return (
-      <Card>
+      <Card className="flex-1">
         <CardHeader>
           <p className="text-muted-foreground">Please select an event to view incidents.</p>
         </CardHeader>
@@ -246,7 +245,7 @@ export function IncidentList() {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="flex-1">
         <CardHeader>
           <p className="text-muted-foreground">Loading...</p>
         </CardHeader>
@@ -254,43 +253,47 @@ export function IncidentList() {
     );
   }
 
+  const filterOptions: { value: FilterType; label: string; count: number }[] = [
+    { value: "active", label: "Active", count: activeCount },
+    { value: "resolved", label: "Resolved", count: resolvedCount },
+    { value: "all", label: "All", count: incidents.length },
+  ];
+
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
+      <Card className="flex-1 flex flex-col min-h-0">
+        <CardHeader className="flex-shrink-0">
+          <div className="flex items-center justify-start gap-4">
+            <div className="flex items-center gap-1">
+              {filterOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setFilter(option.value)}
+                  className={`px-2 py-1 text-sm transition-colors ${
+                    filter === option.value
+                      ? "font-bold text-foreground"
+                      : "font-normal text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {option.label} ({option.count})
+                </button>
+              ))}
+            </div>
             <Button
               variant={showStatusColors ? "default" : "outline"}
               size="sm"
               onClick={() => setShowStatusColors(!showStatusColors)}
               className="dark:hidden"
             >
-              <Paintbrush className="h-4 w-4 mr-1" />
+              <Paintbrush className="h-4 w-4" />
             </Button>
-            <ToggleGroup
-              className="border"
-              type="single"
-              value={filter}
-              onValueChange={(value) => value && setFilter(value as FilterType)}
-              size="sm"
-            >
-              <ToggleGroupItem value="active" aria-label="Show active">
-                Active ({activeCount})
-              </ToggleGroupItem>
-              <ToggleGroupItem value="resolved" aria-label="Show resolved">
-                Resolved ({resolvedCount})
-              </ToggleGroupItem>
-              <ToggleGroupItem value="all" aria-label="Show all">
-                All ({incidents.length})
-              </ToggleGroupItem>
-            </ToggleGroup>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 min-h-0 flex flex-col">
           {filteredIncidents.length === 0 ? (
             <p className="text-muted-foreground p-4">No incidents found.</p>
           ) : (
-            <Table containerClassName="max-h-[340px] overflow-y-auto">
+            <Table containerClassName="flex-1 min-h-0 overflow-y-auto">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px] sticky top-0 bg-card z-10">Incident #</TableHead>
