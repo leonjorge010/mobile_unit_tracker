@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Paintbrush, ExternalLink, ArrowUpDown } from "lucide-react";
+import { Paintbrush, ExternalLink } from "lucide-react";
 import { IncidentModal } from "./incident-modal";
 
 interface Note {
@@ -53,7 +53,6 @@ interface Incident {
 }
 
 type FilterType = "active" | "resolved" | "all";
-type SortField = "createdAt" | "status";
 
 const statusOptions = [
   "Dispatched",
@@ -139,7 +138,6 @@ export function IncidentList() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("active");
-  const [sortField, setSortField] = useState<SortField>("createdAt");
   const [showStatusColors, setShowStatusColors] = useState(false);
   const [noteInputs, setNoteInputs] = useState<Record<string, string>>({});
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
@@ -218,22 +216,13 @@ export function IncidentList() {
     });
   };
 
-  const toggleSortByStatus = () => {
-    setSortField(sortField === "status" ? "createdAt" : "status");
-  };
-
   const filteredIncidents = incidents
     .filter((incident) => {
       if (filter === "active") return incident.status !== "Resolved";
       if (filter === "resolved") return incident.status === "Resolved";
       return true;
     })
-    .sort((a, b) => {
-      if (sortField === "status") {
-        return statusOrder[a.status] - statusOrder[b.status];
-      }
-      return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
-    });
+    .sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
 
   const activeCount = incidents.filter((i) => i.status !== "Resolved").length;
   const resolvedCount = incidents.filter((i) => i.status === "Resolved").length;
@@ -307,15 +296,7 @@ export function IncidentList() {
                     <TableHead className="w-[270px]">Description</TableHead>
                     <TableHead className="w-[225px]">Notes</TableHead>
                     <TableHead className="w-[50px]">Details</TableHead>
-                    <TableHead
-                      className="w-[140px] cursor-pointer hover:text-foreground"
-                      onClick={toggleSortByStatus}
-                    >
-                      <div className="flex items-center gap-1">
-                        Status
-                        <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
-                      </div>
-                    </TableHead>
+                    <TableHead className="w-[140px]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
