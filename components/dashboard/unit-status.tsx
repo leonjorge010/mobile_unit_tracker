@@ -1,30 +1,60 @@
 "use client";
 
+import { useState } from "react";
 import { useResources } from "@/lib/resources-context";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface UnitStatusProps {
   className?: string;
 }
 
+type TabType = "zones" | "carts" | "management";
+
 export function UnitStatus({ className }: UnitStatusProps) {
   const { mobileUnits, incidents, loading } = useResources();
+  const [activeTab, setActiveTab] = useState<TabType>("zones");
 
   const getIncidentForUnit = (unitName: string) => {
-    return incidents.find((incident) => 
+    return incidents.find((incident) =>
       incident.mobileUnits?.includes(unitName)
     );
   };
 
-  const availableCount = mobileUnits.filter(
-    (unit) => !getIncidentForUnit(unit.name)
-  ).length;
+  const categorizeUnits = () => {
+    const zones: typeof mobileUnits = [];
+    const carts: typeof mobileUnits = [];
+    const management: typeof mobileUnits = [];
+
+    mobileUnits.forEach((unit) => {
+      const name = unit.name.toLowerCase();
+      if (name.startsWith("zone") || name.startsWith("mobile")) {
+        zones.push(unit);
+      } else if (name.startsWith("rescue") || name.startsWith("cart")) {
+        carts.push(unit);
+      } else if (
+        name.startsWith("ops") ||
+        name.startsWith("safety") ||
+        name.startsWith("vip")
+      ) {
+        management.push(unit);
+      }
+    });
+
+    return { zones, carts, management };
+  };
+
+  const { zones, carts, management } = categorizeUnits();
+
+  const getActiveUnits = () => {
+    switch (activeTab) {
+      case "zones":
+        return zones;
+      case "carts":
+        return carts;
+      case "management":
+        return management;
+    }
+  };
 
   if (loading) {
     return (
@@ -36,54 +66,74 @@ export function UnitStatus({ className }: UnitStatusProps) {
     );
   }
 
+  const tabs: { key: TabType; label: string }[] = [
+    { key: "zones", label: "Zones" },
+    { key: "carts", label: "Carts" },
+    { key: "management", label: "Management" },
+  ];
+
   return (
     <Card className={className}>
-      <CardContent className="h-full flex flex-col p-4">
-        {mobileUnits.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No units configured</p>
+      <CardContent className="h-full p-4 overflow-hidden flex flex-col">
+        <div className="flex gap-3 text-sm mb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={activeTab === tab.key ? "font-bold" : "text-muted-foreground"}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {getActiveUnits().length === 0 ? (
+          <p className="text-sm text-muted-foreground">No units in this category</p>
         ) : (
-          <>
-            {/* Summary */}
-            <div className="text-sm mb-3">
-              <span className="font-medium">{availableCount} Available</span>
-            </div>
-
-            {/* Unit Grid */}
-            <TooltipProvider delayDuration={200}>
-              <div className="grid grid-cols-3 gap-x-4 gap-y-2">
-                {mobileUnits.map((unit) => {
+          <div
+            className="flex-1 overflow-auto"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            <style jsx>{`
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-[35%]" />
+                <col className="w-[40%]" />
+                <col className="w-[25%]" />
+              </colgroup>
+              <tbody>
+                {getActiveUnits().map((unit) => {
                   const incident = getIncidentForUnit(unit.name);
-                  const isBusy = !!incident;
+                  const isAvailable = !incident;
+                  const status = isAvailable ? "Available" : incident?.status || "Assigned";
 
-                  const unitDisplay = (
-                    <div className="flex items-center gap-2 text-sm cursor-default">
-                      <span className="truncate">{unit.name}</span>
-                      <span
-                        className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${
-                          isBusy ? "bg-red-500" : "bg-green-500"
-                        }`}
-                      />
-                    </div>
+                  return (
+                    <tr key={unit.id} className="border-b last:border-0">
+                      <td className="py-2 text-center truncate">{unit.name}</td>
+                      <td className="py-2 text-center">
+                        <span
+                          className={`px-2 py-0.5 rounded-full border text-xs ${
+                            isAvailable
+                              ? "border-green-500"
+                              : "border-red-500"
+                          }`}
+                        >
+                          {status}
+                        </span>
+                      </td>
+                      <td className="py-2 text-center text-muted-foreground truncate">
+                        {incident ? `#${incident.incidentNumber}` : "—"}
+                      </td>
+                    </tr>
                   );
-
-                  if (isBusy) {
-                    return (
-                      <Tooltip key={unit.id}>
-                        <TooltipTrigger asChild>
-                          {unitDisplay}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          On incident #{incident.incidentNumber}
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  }
-
-                  return <div key={unit.id}>{unitDisplay}</div>;
                 })}
-              </div>
-            </TooltipProvider>
-          </>
+              </tbody>
+            </table>
+          </div>
         )}
       </CardContent>
     </Card>
