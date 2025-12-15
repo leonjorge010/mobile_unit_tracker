@@ -101,7 +101,7 @@ export function UnitStatus({ className }: UnitStatusProps) {
             onClick={() => setShowAvailableOnly(!showAvailableOnly)}
             className={`text-sm ${
               showAvailableOnly
-                ? "underline decoration-green-500 underline-offset-2"
+                ? "underline decoration-green-600 underline-offset-2"
                 : "text-muted-foreground"
             }`}
           >
@@ -142,8 +142,8 @@ export function UnitStatus({ className }: UnitStatusProps) {
                         <span
                           className={`px-2 py-0.5 rounded-full border text-xs ${
                             isAvailable
-                              ? "border-green-500"
-                              : "border-red-500"
+                              ? "border-green-600"
+                              : "border-red-600"
                           }`}
                         >
                           {status}

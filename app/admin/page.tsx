@@ -1,5 +1,3 @@
-// app/admin/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,11 +13,13 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { AdminHeader } from "@/components/admin-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Settings } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Settings, Plus, Calendar } from "lucide-react";
 
 interface Event {
   id: string;
@@ -34,10 +34,10 @@ export default function AdminPage() {
   const [newEventName, setNewEventName] = useState("");
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "events"), orderBy("createdAt", "desc"));
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -46,7 +46,6 @@ export default function AdminPage() {
       setEvents(items);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -60,6 +59,7 @@ export default function AdminPage() {
         createdAt: serverTimestamp(),
       });
       setNewEventName("");
+      setShowAddForm(false);
     } catch (error) {
       console.error("Error adding event:", error);
     } finally {
@@ -80,72 +80,141 @@ export default function AdminPage() {
       e.preventDefault();
       handleAddEvent();
     }
+    if (e.key === "Escape") {
+      setShowAddForm(false);
+      setNewEventName("");
+    }
   };
 
+  const activeEvents = events.filter((e) => e.active);
+  const inactiveEvents = events.filter((e) => !e.active);
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Admin</h1>
-        <p className="text-muted-foreground">Manage events and settings</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <AdminHeader />
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Events</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={newEventName}
-              onChange={(e) => setNewEventName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Add new event..."
-              disabled={adding}
-            />
-            <Button onClick={handleAddEvent} disabled={adding || !newEventName.trim()}>
-              Add
-            </Button>
+      <main className="container mx-auto px-6 py-8 space-y-8">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Manage your events, units, and locations</p>
           </div>
+          <Button onClick={() => setShowAddForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Event
+          </Button>
+        </div>
 
-          <div className="space-y-2">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Events</CardDescription>
+              <CardTitle className="text-3xl">{events.length}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Active Events</CardDescription>
+              <CardTitle className="text-3xl text-green-600">{activeEvents.length}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Inactive Events</CardDescription>
+              <CardTitle className="text-3xl text-muted-foreground">{inactiveEvents.length}</CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+
+        {/* Add Event Form */}
+        {showAddForm && (
+          <Card className="border-dashed border-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Create New Event</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Input
+                  value={newEventName}
+                  onChange={(e) => setNewEventName(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Event name..."
+                  disabled={adding}
+                  autoFocus
+                />
+                <Button onClick={handleAddEvent} disabled={adding || !newEventName.trim()}>
+                  {adding ? "Adding..." : "Create"}
+                </Button>
+                <Button variant="ghost" onClick={() => { setShowAddForm(false); setNewEventName(""); }}>
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Events List */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Events
+            </CardTitle>
+            <CardDescription>Click "Manage" to configure units and locations for each event</CardDescription>
+          </CardHeader>
+          <CardContent>
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
+              <p className="text-sm text-muted-foreground py-4">Loading...</p>
             ) : events.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No events yet</p>
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No events yet. Create your first event to get started.</p>
+                <Button onClick={() => setShowAddForm(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Event
+                </Button>
+              </div>
             ) : (
-              events.map((event) => (
-                <div
-                  key={event.id}
-                  className={`flex items-center justify-between p-3 rounded-md border ${
-                    event.active ? "bg-background" : "bg-muted opacity-60"
-                  }`}
-                >
-                  <span className={event.active ? "" : "line-through"}>
-                    {event.name}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => router.push(`/admin/events/${event.id}`)}
-                    >
-                      <Settings className="h-4 w-4 mr-1" />
-                      Manage
-                    </Button>
-                    <span className="text-xs text-muted-foreground">
-                      {event.active ? "Active" : "Inactive"}
-                    </span>
-                    <Switch
-                      checked={event.active}
-                      onCheckedChange={() => handleToggleEvent(event.id, event.active)}
-                    />
+              <div className="space-y-2">
+                {events.map((event) => (
+                  <div
+                    key={event.id}
+                    className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                      event.active 
+                        ? "bg-background hover:bg-muted/50" 
+                        : "bg-muted/30 opacity-60"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`font-medium ${!event.active && "line-through"}`}>
+                        {event.name}
+                      </span>
+                      <Badge variant={event.active ? "default" : "secondary"}>
+                        {event.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/admin/events/${event.id}`)}
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Manage
+                      </Button>
+                      <Switch
+                        checked={event.active}
+                        onCheckedChange={() => handleToggleEvent(event.id, event.active)}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }

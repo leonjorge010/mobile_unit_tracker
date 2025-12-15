@@ -1,9 +1,7 @@
-// app/admin/events/[eventId]/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   collection,
   doc,
@@ -16,10 +14,11 @@ import {
 import { db } from "@/lib/firebase";
 import { useResources } from "@/lib/resources-context";
 import { useEvents } from "@/lib/events-context";
-import { MobileUnit, Location } from "@/lib/types";
+import { MobileUnit } from "@/lib/types";
+import { AdminHeader } from "@/components/admin-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -27,14 +26,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Trash2, Plus } from "lucide-react";
-
-type Tab = "units" | "locations";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Plus, Truck, MapPin } from "lucide-react";
 
 const unitStatusOptions = [
-  { value: "available", label: "Available" },
-  { value: "dispatched", label: "Dispatched" },
-  { value: "out-of-service", label: "Out of Service" },
+  { value: "available", label: "Available", color: "bg-green-500" },
+  { value: "dispatched", label: "Dispatched", color: "bg-yellow-500" },
+  { value: "out-of-service", label: "Out of Service", color: "bg-red-500" },
 ];
 
 const locationCategoryOptions = [
@@ -47,14 +57,12 @@ const locationCategoryOptions = [
 
 export default function EventDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const eventId = params.eventId as string;
 
   const { selectEvent } = useEvents();
   const { mobileUnits, locations, loading } = useResources();
 
   const [eventName, setEventName] = useState("");
-  const [activeTab, setActiveTab] = useState<Tab>("units");
 
   // Unit form state
   const [newUnitName, setNewUnitName] = useState("");
@@ -65,15 +73,13 @@ export default function EventDetailPage() {
   const [newLocationName, setNewLocationName] = useState("");
   const [newLocationLat, setNewLocationLat] = useState("");
   const [newLocationLng, setNewLocationLng] = useState("");
-  const [newLocationCategory, setNewLocationCategory] = useState<string>("general");
+  const [newLocationCategory, setNewLocationCategory] = useState("general");
   const [addingLocation, setAddingLocation] = useState(false);
 
-  // Set selected event so resources-context loads the right data
   useEffect(() => {
     selectEvent(eventId);
   }, [eventId, selectEvent]);
 
-  // Fetch event name
   useEffect(() => {
     const fetchEvent = async () => {
       const eventDoc = await getDoc(doc(db, "events", eventId));
@@ -150,215 +156,262 @@ export default function EventDetailPage() {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    const option = unitStatusOptions.find((o) => o.value === status);
+    return (
+      <Badge variant="outline" className="gap-1.5">
+        <span className={`h-2 w-2 rounded-full ${option?.color || "bg-gray-500"}`} />
+        {option?.label || status}
+      </Badge>
+    );
+  };
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/admin")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+    <div className="min-h-screen bg-background">
+      <AdminHeader breadcrumbs={[{ label: eventName || "Event" }]} />
+
+      <main className="container mx-auto px-6 py-8 space-y-6">
+        {/* Page Header */}
         <div>
-          <h1 className="text-2xl font-bold">{eventName || "Loading..."}</h1>
-          <p className="text-muted-foreground">Manage units and locations</p>
+          <h1 className="text-3xl font-bold tracking-tight">{eventName || "Loading..."}</h1>
+          <p className="text-muted-foreground mt-1">Configure mobile units and locations for this event</p>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b">
-        <button
-          onClick={() => setActiveTab("units")}
-          className={`px-4 py-2 -mb-px ${
-            activeTab === "units"
-              ? "border-b-2 border-primary font-medium"
-              : "text-muted-foreground"
-          }`}
-        >
-          Mobile Units ({mobileUnits.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("locations")}
-          className={`px-4 py-2 -mb-px ${
-            activeTab === "locations"
-              ? "border-b-2 border-primary font-medium"
-              : "text-muted-foreground"
-          }`}
-        >
-          Locations ({locations.length})
-        </button>
-      </div>
+        {/* Tabs */}
+        <Tabs defaultValue="units" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="units" className="gap-2">
+              <Truck className="h-4 w-4" />
+              Mobile Units ({mobileUnits.length})
+            </TabsTrigger>
+            <TabsTrigger value="locations" className="gap-2">
+              <MapPin className="h-4 w-4" />
+              Locations ({locations.length})
+            </TabsTrigger>
+          </TabsList>
 
-      {/* Mobile Units Tab */}
-      {activeTab === "units" && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Mobile Units</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={newUnitName}
-                onChange={(e) => setNewUnitName(e.target.value)}
-                placeholder="Unit name (e.g., Medic 1)"
-                disabled={addingUnit}
-                className="flex-1"
-              />
-              <Select
-                value={newUnitStatus}
-                onValueChange={(value) => setNewUnitStatus(value as MobileUnit["status"])}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {unitStatusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={handleAddUnit} disabled={addingUnit || !newUnitName.trim()}>
-                <Plus className="h-4 w-4 mr-1" /> Add
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Loading...</p>
-              ) : mobileUnits.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No mobile units yet</p>
-              ) : (
-                mobileUnits.map((unit) => (
-                  <div
-                    key={unit.id}
-                    className="flex items-center justify-between p-3 rounded-md border"
+          {/* Mobile Units Tab */}
+          <TabsContent value="units">
+            <Card>
+              <CardHeader>
+                <CardTitle>Mobile Units</CardTitle>
+                <CardDescription>Add and manage mobile units for this event</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Add Unit Form */}
+                <div className="flex gap-2 p-4 bg-muted/50 rounded-lg">
+                  <Input
+                    value={newUnitName}
+                    onChange={(e) => setNewUnitName(e.target.value)}
+                    placeholder="Unit name (e.g., Medic 1)"
+                    disabled={addingUnit}
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === "Enter" && handleAddUnit()}
+                  />
+                  <Select
+                    value={newUnitStatus}
+                    onValueChange={(value) => setNewUnitStatus(value as MobileUnit["status"])}
                   >
-                    <span className="font-medium">{unit.name}</span>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={unit.status}
-                        onValueChange={(value) =>
-                          handleUpdateUnitStatus(unit.id, value as MobileUnit["status"])
-                        }
-                      >
-                        <SelectTrigger className="w-[140px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {unitStatusOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteUnit(unit.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unitStatusOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleAddUnit} disabled={addingUnit || !newUnitName.trim()}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Unit
+                  </Button>
+                </div>
+
+                {/* Units List */}
+                {loading ? (
+                  <p className="text-sm text-muted-foreground py-4">Loading...</p>
+                ) : mobileUnits.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No mobile units yet. Add your first unit above.
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ) : (
+                  <div className="space-y-2">
+                    {mobileUnits.map((unit) => (
+                      <div
+                        key={unit.id}
+                        className="flex items-center justify-between p-4 rounded-lg border bg-background"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{unit.name}</span>
+                          {getStatusBadge(unit.status)}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={unit.status}
+                            onValueChange={(value) =>
+                              handleUpdateUnitStatus(unit.id, value as MobileUnit["status"])
+                            }
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {unitStatusOptions.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete {unit.name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete this mobile unit.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteUnit(unit.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-      {/* Locations Tab */}
-      {activeTab === "locations" && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Locations</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={newLocationName}
-                onChange={(e) => setNewLocationName(e.target.value)}
-                placeholder="Location name"
-                disabled={addingLocation}
-                className="flex-1"
-              />
-              <Input
-                value={newLocationLat}
-                onChange={(e) => setNewLocationLat(e.target.value)}
-                placeholder="Latitude"
-                disabled={addingLocation}
-                className="w-[100px]"
-                type="number"
-                step="any"
-              />
-              <Input
-                value={newLocationLng}
-                onChange={(e) => setNewLocationLng(e.target.value)}
-                placeholder="Longitude"
-                disabled={addingLocation}
-                className="w-[100px]"
-                type="number"
-                step="any"
-              />
-              <Select
-                value={newLocationCategory}
-                onValueChange={setNewLocationCategory}
-              >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {locationCategoryOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleAddLocation}
-                disabled={addingLocation || !newLocationName.trim() || !newLocationLat || !newLocationLng}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {loading ? (
-                <p className="text-sm text-muted-foreground">Loading...</p>
-              ) : locations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No locations yet</p>
-              ) : (
-                locations.map((location) => (
-                  <div
-                    key={location.id}
-                    className="flex items-center justify-between p-3 rounded-md border"
+          {/* Locations Tab */}
+          <TabsContent value="locations">
+            <Card>
+              <CardHeader>
+                <CardTitle>Locations</CardTitle>
+                <CardDescription>Add and manage locations for this event</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Add Location Form */}
+                <div className="flex gap-2 p-4 bg-muted/50 rounded-lg flex-wrap">
+                  <Input
+                    value={newLocationName}
+                    onChange={(e) => setNewLocationName(e.target.value)}
+                    placeholder="Location name"
+                    disabled={addingLocation}
+                    className="flex-1 min-w-[200px]"
+                  />
+                  <Input
+                    value={newLocationLat}
+                    onChange={(e) => setNewLocationLat(e.target.value)}
+                    placeholder="Latitude"
+                    disabled={addingLocation}
+                    className="w-[120px]"
+                    type="number"
+                    step="any"
+                  />
+                  <Input
+                    value={newLocationLng}
+                    onChange={(e) => setNewLocationLng(e.target.value)}
+                    placeholder="Longitude"
+                    disabled={addingLocation}
+                    className="w-[120px]"
+                    type="number"
+                    step="any"
+                  />
+                  <Select value={newLocationCategory} onValueChange={setNewLocationCategory}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locationCategoryOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={handleAddLocation}
+                    disabled={addingLocation || !newLocationName.trim() || !newLocationLat || !newLocationLng}
                   >
-                    <div>
-                      <span className="font-medium">{location.name}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {location.category}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-muted-foreground">
-                        {location.coordinates.lat.toFixed(5)}, {location.coordinates.lng.toFixed(5)}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteLocation(location.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Location
+                  </Button>
+                </div>
+
+                {/* Locations List */}
+                {loading ? (
+                  <p className="text-sm text-muted-foreground py-4">Loading...</p>
+                ) : locations.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No locations yet. Add your first location above.
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ) : (
+                  <div className="space-y-2">
+                    {locations.map((location) => (
+                      <div
+                        key={location.id}
+                        className="flex items-center justify-between p-4 rounded-lg border bg-background"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{location.name}</span>
+                          <Badge variant="secondary">{location.category}</Badge>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm text-muted-foreground font-mono">
+                            {location.coordinates.lat.toFixed(5)}, {location.coordinates.lng.toFixed(5)}
+                          </span>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete {location.name}?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently delete this location.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteLocation(location.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   );
 }
