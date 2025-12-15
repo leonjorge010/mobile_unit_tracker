@@ -1,3 +1,5 @@
+// components/dashboard/incident-form.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -5,8 +7,8 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, li
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
 import { useEvents } from "@/lib/events-context";
+import { useResources } from "@/lib/resources-context";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -113,9 +115,13 @@ const generateIncidentNumber = async (): Promise<string> => {
 export function IncidentForm() {
   const { user } = useAuth();
   const { selectedEventId } = useEvents();
+  const { mobileUnits, locations, loading: resourcesLoading } = useResources();
   const [formData, setFormData] = useState<IncidentData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+
+  // Filter to only show available units
+  const availableUnits = mobileUnits.filter((unit) => unit.status === "available");
 
   const handleChange = (field: keyof IncidentData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -238,18 +244,54 @@ export function IncidentForm() {
 
           {/* Row 2 */}
           <div className="grid grid-cols-4 gap-2">
-            <Input
+            <Select
               value={formData.mobileUnit}
-              onChange={(e) => handleChange("mobileUnit", e.target.value)}
-              placeholder="Mobile Unit"
-              className="truncate"
-            />
-            <Input
+              onValueChange={(value) => handleChange("mobileUnit", value)}
+            >
+              <SelectTrigger className="w-full overflow-hidden">
+                <SelectValue
+                  placeholder={resourcesLoading ? "Loading..." : "Mobile Unit"}
+                  className="truncate"
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {availableUnits.length === 0 ? (
+                  <SelectItem value="_none" disabled>
+                    No available units
+                  </SelectItem>
+                ) : (
+                  availableUnits.map((unit) => (
+                    <SelectItem key={unit.id} value={unit.name}>
+                      {unit.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <Select
               value={formData.location}
-              onChange={(e) => handleChange("location", e.target.value)}
-              placeholder="Location *"
-              className="truncate"
-            />
+              onValueChange={(value) => handleChange("location", value)}
+            >
+              <SelectTrigger className="w-full overflow-hidden">
+                <SelectValue
+                  placeholder={resourcesLoading ? "Loading..." : "Location *"}
+                  className="truncate"
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {locations.length === 0 ? (
+                  <SelectItem value="_none" disabled>
+                    No locations
+                  </SelectItem>
+                ) : (
+                  locations.map((loc) => (
+                    <SelectItem key={loc.id} value={loc.name}>
+                      {loc.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
             <Select
               value={formData.priority}
               onValueChange={(value) => handleChange("priority", value)}

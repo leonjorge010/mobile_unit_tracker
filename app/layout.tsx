@@ -1,5 +1,6 @@
 import { AuthProvider } from "@/lib/auth-context";
 import { EventsProvider } from "@/lib/events-context";
+import { ResourcesProvider } from "@/lib/resources-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -19,7 +20,9 @@ export default function RootLayout({
         >
           <AuthProvider>
             <EventsProvider>
-              {children}
+              <ResourcesProvider>
+                {children}
+              </ResourcesProvider>
             </EventsProvider>
           </AuthProvider>
         </ThemeProvider>

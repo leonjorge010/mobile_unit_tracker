@@ -256,6 +256,7 @@ export function IncidentList() {
               variant={showStatusColors ? "default" : "outline"}
               size="sm"
               onClick={() => setShowStatusColors(!showStatusColors)}
+              className="dark:hidden"
             >
               <Paintbrush className="h-4 w-4 mr-1" />
             </Button>
@@ -282,95 +283,93 @@ export function IncidentList() {
           {filteredIncidents.length === 0 ? (
             <p className="text-muted-foreground p-4">No incidents found.</p>
           ) : (
-            <div className="max-h-[340px] overflow-y-auto">
-              <Table>
-                <TableHeader className="sticky bg-background z-10">
-                  <TableRow>
-                    <TableHead className="w-[80px]">Incident #</TableHead>
-                    <TableHead className="w-[80px]">Time</TableHead>
-                    <TableHead className="w-[75px]">Priority</TableHead>
-                    <TableHead className="w-[60px]">Type</TableHead>
-                    <TableHead className="w-[120px]">Party of Concern</TableHead>
-                    <TableHead className="w-[60px]">Location</TableHead>
-                    <TableHead className="w-[80px]">Unit</TableHead>
-                    <TableHead className="w-[270px]">Description</TableHead>
-                    <TableHead className="w-[225px]">Notes</TableHead>
-                    <TableHead className="w-[50px]">Details</TableHead>
-                    <TableHead className="w-[140px]">Status</TableHead>
+            <Table containerClassName="max-h-[340px] overflow-y-auto">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px] sticky top-0 bg-card z-10">Incident #</TableHead>
+                  <TableHead className="w-[80px] sticky top-0 bg-card z-10">Time</TableHead>
+                  <TableHead className="w-[75px] sticky top-0 bg-card z-10">Priority</TableHead>
+                  <TableHead className="w-[60px] sticky top-0 bg-card z-10">Type</TableHead>
+                  <TableHead className="w-[120px] sticky top-0 bg-card z-10">Division</TableHead>
+                  <TableHead className="w-[60px] sticky top-0 bg-card z-10">Location</TableHead>
+                  <TableHead className="w-[80px] sticky top-0 bg-card z-10">Unit</TableHead>
+                  <TableHead className="w-[270px] sticky top-0 bg-card z-10">Description</TableHead>
+                  <TableHead className="w-[225px] sticky top-0 bg-card z-10">Notes</TableHead>
+                  <TableHead className="w-[50px] sticky top-0 bg-card z-10">Details</TableHead>
+                  <TableHead className="w-[140px] sticky top-0 bg-card z-10">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredIncidents.map((incident) => (
+                  <TableRow
+                    key={incident.id}
+                    className={showStatusColors ? `${getRowStatusColor(incident.status)} dark:bg-transparent` : ""}
+                  >
+                    <TableCell className="font-mono font-medium truncate">
+                      {incident.incidentNumber || "—"}
+                    </TableCell>
+                    <TableCell className="font-mono truncate">
+                      {formatTime(incident.createdAt)}
+                    </TableCell>
+                    <TableCell className={`font-medium truncate ${getPriorityColor(incident.priority)}`}>
+                      {priorityLabels[incident.priority] || "—"}
+                    </TableCell>
+                    <TableCell className="truncate max-w-[60px]" title={incident.incidentType}>
+                      {incident.incidentType}
+                    </TableCell>
+                    <TableCell className="truncate max-w-[120px]" title={incident.partyOfConcern}>
+                      {incident.partyOfConcern}
+                    </TableCell>
+                    <TableCell className="truncate max-w-[60px]" title={incident.location}>
+                      {incident.location}
+                    </TableCell>
+                    <TableCell className="truncate max-w-[80px]" title={incident.mobileUnit}>
+                      {incident.mobileUnit || "—"}
+                    </TableCell>
+                    <TableCell className="truncate max-w-[270px]" title={incident.description}>
+                      {incident.description || "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        className="h-8 text-xs truncate"
+                        placeholder="Add note..."
+                        value={noteInputs[incident.id] || ""}
+                        onChange={(e) =>
+                          setNoteInputs((prev) => ({ ...prev, [incident.id]: e.target.value }))
+                        }
+                        onKeyDown={(e) => e.key === "Enter" && handleAddNote(incident.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenModal(incident)}
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={incident.status}
+                        onValueChange={(value) => handleStatusChange(incident.id, value)}
+                      >
+                        <SelectTrigger className={`h-8 w-full overflow-hidden ${getStatusColor(incident.status)}`}>
+                          <SelectValue className="truncate" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusOptions.map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {status}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredIncidents.map((incident) => (
-                    <TableRow
-                      key={incident.id}
-                      className={showStatusColors ? getRowStatusColor(incident.status) : ""}
-                    >
-                      <TableCell className="font-mono font-medium truncate">
-                        {incident.incidentNumber || "—"}
-                      </TableCell>
-                      <TableCell className="font-mono truncate">
-                        {formatTime(incident.createdAt)}
-                      </TableCell>
-                      <TableCell className={`font-medium truncate ${getPriorityColor(incident.priority)}`}>
-                        {priorityLabels[incident.priority] || "—"}
-                      </TableCell>
-                      <TableCell className="truncate max-w-[60px]" title={incident.incidentType}>
-                        {incident.incidentType}
-                      </TableCell>
-                      <TableCell className="truncate max-w-[120px]" title={incident.partyOfConcern}>
-                        {incident.partyOfConcern}
-                      </TableCell>
-                      <TableCell className="truncate max-w-[60px]" title={incident.location}>
-                        {incident.location}
-                      </TableCell>
-                      <TableCell className="truncate max-w-[80px]" title={incident.mobileUnit}>
-                        {incident.mobileUnit || "—"}
-                      </TableCell>
-                      <TableCell className="truncate max-w-[270px]" title={incident.description}>
-                        {incident.description || "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          className="h-8 text-xs truncate"
-                          placeholder="Add note..."
-                          value={noteInputs[incident.id] || ""}
-                          onChange={(e) =>
-                            setNoteInputs((prev) => ({ ...prev, [incident.id]: e.target.value }))
-                          }
-                          onKeyDown={(e) => e.key === "Enter" && handleAddNote(incident.id)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenModal(incident)}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={incident.status}
-                          onValueChange={(value) => handleStatusChange(incident.id, value)}
-                        >
-                          <SelectTrigger className={`h-8 w-full overflow-hidden ${getStatusColor(incident.status)}`}>
-                            <SelectValue className="truncate" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {statusOptions.map((status) => (
-                              <SelectItem key={status} value={status}>
-                                {status}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

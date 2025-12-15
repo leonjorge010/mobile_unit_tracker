@@ -1,6 +1,9 @@
+// app/admin/page.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   collection,
   query,
@@ -16,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Settings } from "lucide-react";
 
 interface Event {
   id: string;
@@ -25,6 +29,7 @@ interface Event {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
   const [events, setEvents] = useState<Event[]>([]);
   const [newEventName, setNewEventName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -118,7 +123,15 @@ export default function AdminPage() {
                   <span className={event.active ? "" : "line-through"}>
                     {event.name}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push(`/admin/events/${event.id}`)}
+                    >
+                      <Settings className="h-4 w-4 mr-1" />
+                      Manage
+                    </Button>
                     <span className="text-xs text-muted-foreground">
                       {event.active ? "Active" : "Inactive"}
                     </span>
