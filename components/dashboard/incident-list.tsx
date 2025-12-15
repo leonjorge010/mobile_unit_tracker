@@ -40,7 +40,7 @@ interface Incident {
   reportingParty: string;
   partyOfConcern: string;
   location: string;
-  mobileUnit: string;
+  mobileUnits: string[];
   incidentType: string;
   reportedVia: string;
   priority: string;
@@ -132,6 +132,12 @@ const getRowStatusColor = (status: string) => {
   }
 };
 
+const formatMobileUnits = (units: string[] | undefined) => {
+  if (!units || units.length === 0) return "—";
+  if (units.length === 1) return units[0];
+  return `${units[0]} +${units.length - 1}`;
+};
+
 export function IncidentList() {
   const { user } = useAuth();
   const { selectedEventId } = useEvents();
@@ -160,6 +166,7 @@ export function IncidentList() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const incidentData = snapshot.docs.map((doc) => ({
         id: doc.id,
+        mobileUnits: doc.data().mobileUnits || [],
         ...doc.data(),
       })) as Incident[];
       setIncidents(incidentData);
@@ -323,8 +330,11 @@ export function IncidentList() {
                     <TableCell className="truncate max-w-[60px]" title={incident.location}>
                       {incident.location}
                     </TableCell>
-                    <TableCell className="truncate max-w-[80px]" title={incident.mobileUnit}>
-                      {incident.mobileUnit || "—"}
+                    <TableCell 
+                      className="truncate max-w-[80px]" 
+                      title={incident.mobileUnits?.join(", ")}
+                    >
+                      {formatMobileUnits(incident.mobileUnits)}
                     </TableCell>
                     <TableCell className="truncate max-w-[270px]" title={incident.description}>
                       {incident.description || "—"}

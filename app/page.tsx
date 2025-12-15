@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { MapWrapper } from "@/components/dashboard/map-wrapper";
+import { UnitStatus } from "@/components/dashboard/unit-status";
 import { IncidentForm } from "@/components/dashboard/incident-form";
 import { IncidentList } from "@/components/dashboard/incident-list";
 
@@ -94,7 +94,7 @@ export default function Home() {
 
       <main className="p-4 space-y-4">
         <div className="flex flex-col lg:flex-row gap-4">
-          <MapWrapper className="h-[300px] w-full lg:w-1/3 rounded-lg overflow-hidden border" />
+          <UnitStatus className="h-[300px] w-full lg:w-1/3" />
           <div className="w-full lg:w-2/3">
             <IncidentForm />
           </div>

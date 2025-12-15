@@ -1,5 +1,3 @@
-// components/dashboard/incident-form.tsx
-
 "use client";
 
 import { useState } from "react";
@@ -23,7 +21,7 @@ interface IncidentData {
   reportingParty: string;
   partyOfConcern: string;
   location: string;
-  mobileUnit: string;
+  mobileUnits: string[];
   incidentType: string;
   reportedVia: string;
   priority: string;
@@ -76,7 +74,7 @@ const initialFormData: IncidentData = {
   reportingParty: "",
   partyOfConcern: "",
   location: "",
-  mobileUnit: "",
+  mobileUnits: [],
   incidentType: "",
   reportedVia: "",
   priority: "",
@@ -115,15 +113,16 @@ const generateIncidentNumber = async (): Promise<string> => {
 export function IncidentForm() {
   const { user } = useAuth();
   const { selectedEventId } = useEvents();
-  const { mobileUnits, locations, loading: resourcesLoading } = useResources();
+  const { mobileUnits, locations, incidents, loading: resourcesLoading } = useResources();
   const [formData, setFormData] = useState<IncidentData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
-  // Filter to only show available units
-  const availableUnits = mobileUnits.filter((unit) => unit.status === "available");
+  // Get units that are available (not assigned to any active incident)
+  const busyUnitNames = new Set(incidents.flatMap((inc) => inc.mobileUnits || []));
+  const availableUnits = mobileUnits.filter((unit) => !busyUnitNames.has(unit.name));
 
-  const handleChange = (field: keyof IncidentData, value: string) => {
+  const handleChange = (field: keyof IncidentData, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -245,8 +244,8 @@ export function IncidentForm() {
           {/* Row 2 */}
           <div className="grid grid-cols-4 gap-2">
             <Select
-              value={formData.mobileUnit}
-              onValueChange={(value) => handleChange("mobileUnit", value)}
+              value={formData.mobileUnits[0] || ""}
+              onValueChange={(value) => handleChange("mobileUnits", value ? [value] : [])}
             >
               <SelectTrigger className="w-full overflow-hidden">
                 <SelectValue
