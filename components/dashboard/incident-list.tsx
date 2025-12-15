@@ -56,7 +56,7 @@ type FilterType = "active" | "resolved" | "all";
 type SortField = "createdAt" | "status";
 
 const statusOptions = [
-  "AOR",
+  "Dispatched",
   "Responding",
   "On Scene",
   "Transporting",
@@ -65,7 +65,7 @@ const statusOptions = [
 ];
 
 const statusOrder: Record<string, number> = {
-  "AOR": 0,
+  "Dispatched": 0,
   "Responding": 1,
   "On Scene": 2,
   "Transporting": 3,
@@ -82,7 +82,7 @@ const priorityLabels: Record<string, string> = {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "AOR":
+    case "Dispatched":
       return "bg-red-200 border-red-500";
     case "Responding":
       return "bg-orange-200 border-orange-500";
@@ -116,7 +116,7 @@ const getPriorityColor = (priority: string) => {
 
 const getRowStatusColor = (status: string) => {
   switch (status) {
-    case "AOR":
+    case "Dispatched":
       return "bg-red-100";
     case "Responding":
       return "bg-orange-100";
@@ -293,9 +293,9 @@ export function IncidentList() {
           {filteredIncidents.length === 0 ? (
             <p className="text-muted-foreground p-4">No incidents found.</p>
           ) : (
-            <div className="max-h-[300px] overflow-y-auto">
+            <div className="max-h-[340px] overflow-y-auto">
               <Table>
-                <TableHeader className="sticky top-0 bg-background z-10">
+                <TableHeader className="sticky bg-background z-10">
                   <TableRow>
                     <TableHead className="w-[80px]">Incident #</TableHead>
                     <TableHead className="w-[80px]">Time</TableHead>

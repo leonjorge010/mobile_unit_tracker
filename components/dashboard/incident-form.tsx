@@ -62,7 +62,7 @@ const priorityOptions = [
 ];
 
 const statusOptions = [
-  "AOR",
+  "Dispatched",
   "Responding",
   "On Scene",
   "Transporting",
@@ -179,7 +179,7 @@ export function IncidentForm() {
               onValueChange={(value) => handleChange("reportingParty", value)}
             >
               <SelectTrigger className="w-full overflow-hidden">
-                <SelectValue placeholder="Reporting Party" className="truncate" />
+                <SelectValue placeholder="Reporting Department" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 {partyOptions.map((option) => (
@@ -194,7 +194,7 @@ export function IncidentForm() {
               onValueChange={(value) => handleChange("partyOfConcern", value)}
             >
               <SelectTrigger className="w-full overflow-hidden">
-                <SelectValue placeholder="Party of Concern" className="truncate" />
+                <SelectValue placeholder="Division" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 {partyOptions.map((option) => (
@@ -224,7 +224,7 @@ export function IncidentForm() {
               onValueChange={(value) => handleChange("reportedVia", value)}
             >
               <SelectTrigger className="w-full overflow-hidden">
-                <SelectValue placeholder="Reported Via" className="truncate" />
+                <SelectValue placeholder="Source" className="truncate" />
               </SelectTrigger>
               <SelectContent>
                 {reportedViaOptions.map((option) => (
