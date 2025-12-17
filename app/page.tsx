@@ -1,16 +1,14 @@
 "use client";
 
 import { useAuth } from "@/lib/auth-context";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/app-header";
+import { LandingPage } from "@/components/landing-page";
 import { UnitStatus } from "@/components/dashboard/unit-status";
 import { IncidentForm } from "@/components/dashboard/incident-form";
 import { IncidentList } from "@/components/dashboard/incident-list";
 
 export default function Home() {
   const { user, loading } = useAuth();
-  const router = useRouter();
 
   if (loading) {
     return (
@@ -21,20 +19,7 @@ export default function Home() {
   }
 
   if (!user) {
-    return (
-      <div className="h-screen bg-background">
-        <AppHeader />
-        <main className="max-w-7xl mx-auto px-4 py-16 text-center">
-          <h2 className="text-4xl font-bold mb-4">Track Your Mobile Units</h2>
-          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Monitor and manage your mobile units in real-time with our easy-to-use tracking system.
-          </p>
-          <Button size="lg" onClick={() => router.push("/login")}>
-            Get Started
-          </Button>
-        </main>
-      </div>
-    );
+    return <LandingPage />;
   }
 
   return (
