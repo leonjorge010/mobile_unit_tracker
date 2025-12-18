@@ -76,17 +76,36 @@ export function UnitStatus({ className }: UnitStatusProps) {
     );
   }
 
-  const tabs: { key: TabType; label: string }[] = [
-    { key: "zones", label: "Zones" },
-    { key: "carts", label: "Carts" },
-    { key: "management", label: "Management" },
+  const tabs: { key: TabType; label: string; shortLabel: string }[] = [
+    { key: "zones", label: "Zones", shortLabel: "Zones" },
+    { key: "carts", label: "Carts", shortLabel: "Carts" },
+    { key: "management", label: "Management", shortLabel: "Mgmt" },
   ];
 
   return (
     <Card className={className}>
-      <CardContent className="h-full p-4 overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex gap-3 text-sm">
+      <CardContent className="h-full p-3 sm:p-4 overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-2 sm:mb-2">
+          {/* Mobile: pill-style tabs */}
+          <div className="flex sm:hidden gap-1 bg-muted/50 rounded-lg p-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors min-h-[36px] ${
+                  activeTab === tab.key
+                    ? "bg-background font-semibold shadow-sm"
+                    : "text-muted-foreground active:bg-background/50"
+                }`}
+              >
+                {tab.shortLabel}
+              </button>
+            ))}
+          </div>
+
+          {/* Desktop: original text tabs */}
+          <div className="hidden sm:flex gap-3 text-sm">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
@@ -97,9 +116,23 @@ export function UnitStatus({ className }: UnitStatusProps) {
               </button>
             ))}
           </div>
+
+          {/* Mobile: styled available button */}
           <button
             onClick={() => setShowAvailableOnly(!showAvailableOnly)}
-            className={`text-sm ${
+            className={`sm:hidden text-sm px-3 py-1.5 rounded-md min-h-[36px] transition-colors ${
+              showAvailableOnly
+                ? "bg-green-600/10 text-green-600 font-medium"
+                : "text-muted-foreground active:bg-muted"
+            }`}
+          >
+            Available
+          </button>
+
+          {/* Desktop: original available button */}
+          <button
+            onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+            className={`hidden sm:block text-sm ${
               showAvailableOnly
                 ? "underline decoration-green-600 underline-offset-2"
                 : "text-muted-foreground"
@@ -110,7 +143,7 @@ export function UnitStatus({ className }: UnitStatusProps) {
         </div>
 
         {getActiveUnits().length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground sm:text-left text-center py-8 sm:py-0">
             {showAvailableOnly ? "No available units" : "No units in this category"}
           </p>
         ) : (
@@ -123,7 +156,45 @@ export function UnitStatus({ className }: UnitStatusProps) {
                 display: none;
               }
             `}</style>
-            <table className="w-full text-sm table-fixed">
+
+            {/* Mobile: Card layout */}
+            <div className="sm:hidden space-y-2">
+              {getActiveUnits().map((unit) => {
+                const incident = getIncidentForUnit(unit.name);
+                const isAvailable = !incident;
+                const status = isAvailable ? "Available" : incident?.status || "Assigned";
+
+                return (
+                  <div
+                    key={unit.id}
+                    className="flex items-center justify-between py-3 px-3 bg-muted/30 rounded-lg"
+                  >
+                    <span className="font-medium text-sm truncate flex-shrink min-w-0">
+                      {unit.name}
+                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                      <span
+                        className={`px-2.5 py-1 rounded-full border text-xs font-medium ${
+                          isAvailable
+                            ? "border-green-600 text-green-600 bg-green-600/5"
+                            : "border-red-600 text-red-600 bg-red-600/5"
+                        }`}
+                      >
+                        {status}
+                      </span>
+                      {incident && (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          #{incident.incidentNumber}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: Original table layout */}
+            <table className="hidden sm:table w-full text-sm table-fixed">
               <colgroup>
                 <col className="w-[35%]" />
                 <col className="w-[40%]" />

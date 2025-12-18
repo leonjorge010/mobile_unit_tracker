@@ -23,9 +23,9 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="min-h-screen lg:h-screen bg-background flex flex-col lg:overflow-hidden">
       <AppHeader />
-      <main className="flex-1 min-h-0 p-4 flex flex-col gap-4">
+      <main className="flex-1 lg:min-h-0 p-4 flex flex-col gap-4 overflow-auto">
         <div className="flex flex-col lg:flex-row gap-4 flex-shrink-0">
           <UnitStatus className="h-[300px] w-full lg:w-1/3" />
           <div className="w-full lg:w-2/3">
