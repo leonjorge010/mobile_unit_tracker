@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Lock, Unlock } from "lucide-react";
 
 interface IncidentData {
   reportingParty: string;
@@ -82,6 +83,9 @@ const initialFormData: IncidentData = {
   status: "",
 };
 
+const DIVISION_STORAGE_KEY = "incident-form-division";
+const DIVISION_LOCKED_KEY = "incident-form-division-locked";
+
 const generateIncidentNumber = async (): Promise<string> => {
   const now = new Date();
   const year = now.getFullYear().toString().slice(-2);
@@ -117,6 +121,18 @@ export function IncidentForm() {
   const [formData, setFormData] = useState<IncidentData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+  const [divisionLocked, setDivisionLocked] = useState(false);
+
+  // Load locked division from localStorage on mount
+  useEffect(() => {
+    const savedLocked = localStorage.getItem(DIVISION_LOCKED_KEY) === "true";
+    const savedDivision = localStorage.getItem(DIVISION_STORAGE_KEY);
+    
+    if (savedLocked && savedDivision) {
+      setDivisionLocked(true);
+      setFormData((prev) => ({ ...prev, partyOfConcern: savedDivision }));
+    }
+  }, []);
 
   // Get units that are available (not assigned to any active incident)
   const busyUnitNames = new Set(incidents.flatMap((inc) => inc.mobileUnits || []));
@@ -124,10 +140,30 @@ export function IncidentForm() {
 
   const handleChange = (field: keyof IncidentData, value: string | string[]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    
+    // If changing division while locked, update localStorage
+    if (field === "partyOfConcern" && divisionLocked) {
+      localStorage.setItem(DIVISION_STORAGE_KEY, value as string);
+    }
+  };
+
+  const toggleDivisionLock = () => {
+    const newLocked = !divisionLocked;
+    setDivisionLocked(newLocked);
+    
+    if (newLocked && formData.partyOfConcern) {
+      localStorage.setItem(DIVISION_LOCKED_KEY, "true");
+      localStorage.setItem(DIVISION_STORAGE_KEY, formData.partyOfConcern);
+    } else {
+      localStorage.removeItem(DIVISION_LOCKED_KEY);
+      localStorage.removeItem(DIVISION_STORAGE_KEY);
+    }
   };
 
   const handleClear = () => {
-    setFormData(initialFormData);
+    // Preserve division if locked
+    const preservedDivision = divisionLocked ? formData.partyOfConcern : "";
+    setFormData({ ...initialFormData, partyOfConcern: preservedDivision });
     setStatus("");
   };
 
@@ -164,7 +200,9 @@ export function IncidentForm() {
       });
 
       setStatus("nominal");
-      setFormData(initialFormData);
+      // Preserve division if locked
+      const preservedDivision = divisionLocked ? formData.partyOfConcern : "";
+      setFormData({ ...initialFormData, partyOfConcern: preservedDivision });
     } catch (error) {
       setStatus("error");
       console.error("Error creating incident:", error);
@@ -194,21 +232,36 @@ export function IncidentForm() {
                 ))}
               </SelectContent>
             </Select>
-            <Select
-              value={formData.partyOfConcern}
-              onValueChange={(value) => handleChange("partyOfConcern", value)}
-            >
-              <SelectTrigger className="w-full overflow-hidden">
-                <SelectValue placeholder="Division" className="truncate" />
-              </SelectTrigger>
-              <SelectContent>
-                {partyOptions.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            
+            {/* Division with lock button */}
+            <div className="flex gap-1">
+              <Select
+                value={formData.partyOfConcern}
+                onValueChange={(value) => handleChange("partyOfConcern", value)}
+              >
+                <SelectTrigger className={`w-full overflow-hidden ${divisionLocked ? "border-blue-500" : ""}`}>
+                  <SelectValue placeholder="Division" className="truncate" />
+                </SelectTrigger>
+                <SelectContent>
+                  {partyOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant={divisionLocked ? "default" : "outline"}
+                size="icon"
+                className="shrink-0"
+                onClick={toggleDivisionLock}
+                title={divisionLocked ? "Unlock division" : "Lock division"}
+              >
+                {divisionLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+              </Button>
+            </div>
+            
             <Select
               value={formData.incidentType}
               onValueChange={(value) => handleChange("incidentType", value)}
